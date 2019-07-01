@@ -1,0 +1,7 @@
+project_path: E:\ecan\git\Cwms\Ecan.Cwms.Ashburton\results
+ts_server: edwprod01
+permit_server: edwdev01
+from_date: '2007-07-31'
+to_date: '2018-06-30'
+min_gaugings: 8
+buffer_dis: 50000

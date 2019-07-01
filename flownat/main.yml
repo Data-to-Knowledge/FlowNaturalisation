@@ -1,0 +1,13 @@
+name: Ash
+channels:
+- mullenkamp
+- conda-forge
+- defaults
+dependencies:
+- python=3.6
+- pdsql
+- gistools
+- ecandbparams
+- ecanallousagetools
+- hydrolm
+- pyyaml
