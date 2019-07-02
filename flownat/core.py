@@ -9,8 +9,6 @@ from pdsql import mssql
 from gistools import rec, vector
 from allotools import AlloUsage
 from hydrolm import LM
-from gistools import vector
-import geopandas as gpd
 import os
 import yaml
 import pandas as pd
@@ -34,7 +32,7 @@ class FlowNat(object):
 
     """
 
-    def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None):
+    def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None, load_rec=False):
         """
 
         """
@@ -46,6 +44,10 @@ class FlowNat(object):
         summ1 = self.flow_datasets(from_date=from_date, to_date=to_date, min_gaugings=8, rec_data_code=rec_data_code)
         if input_sites is not None:
             input_summ1 = self.process_sites(input_sites)
+
+        if load_rec:
+            self.load_rec()
+
         pass
 
 #    def data_code(self, rec_data_code='Primary'):
@@ -173,21 +175,35 @@ class FlowNat(object):
         return input_summ1
 
 
+    def load_rec(self):
+        """
+
+        """
+        if not hasattr(self, 'rec_rivers'):
+            sql1 = sql_arg()
+
+            rec_rivers_dict = sql1.get_dict(param['input']['rec_rivers_sql'])
+            rec_catch_dict = sql1.get_dict(param['input']['rec_catch_sql'])
+
+            rec_rivers = mssql.rd_sql(**rec_rivers_dict)
+            rec_catch = mssql.rd_sql(**rec_catch_dict)
+
+            setattr(self, 'rec_rivers', rec_rivers)
+            setattr(self, 'rec_catch', rec_catch)
+
+        pass
+
+
     def catch_del(self):
         """
 
         """
         ## Read in GIS data
-        sql1 = sql_arg()
-
-        rec_rivers_dict = sql1.get_dict(param['input']['rec_rivers_sql'])
-        rec_catch_dict = sql1.get_dict(param['input']['rec_catch_sql'])
-
-        rec_rivers = mssql.rd_sql(**rec_rivers_dict)
-        rec_catch = mssql.rd_sql(**rec_catch_dict)
+        if not hasattr(self, 'rec_rivers'):
+            self.load_rec()
 
         ## Catch del
-        catch_gdf = rec.catch_delineate(self.flow_sites_gdf, rec_rivers, rec_catch)
+        catch_gdf = rec.catch_delineate(self.flow_sites_gdf, self.rec_rivers, self.rec_catch)
 
         ## Save if required
         if hasattr(self, 'output_path'):
@@ -358,173 +374,156 @@ class FlowNat(object):
         return flow
 
 
+    def usage_est(self):
+        """
 
+        """
+        if not hasattr(self, 'waps_gdf'):
+            allo_wap = self.upstream_takes()
 
+        waps_gdf = self.waps_gdf.copy()
 
+        ## Get allo and usage data
+        allo1 = AlloUsage(self.from_date, self.to_date, site_filter={'SwazGroupName': waps_gdf.SwazGroupName.unique().tolist()})
 
+        usage1 = allo1.get_ts(['Allo', 'RestrAllo', 'Usage'], 'M', ['Wap', 'WaterUse'])
 
+        usage2 = usage1.loc[usage1.SwRestrAllo > 0, ['SwRestrAllo', 'SwUsage']].reset_index().copy()
 
+        usage2.replace({'WaterUse': {'industrial': 'other', 'municipal': 'other'}}, inplace=True)
 
+        usage2[['SwRestrAlloYr', 'SwUsageYr']] = usage2.groupby(['Wap', 'WaterUse', pd.Grouper(key='Date', freq='A-JUN')]).transform('sum')
 
+        sites1 = mssql.rd_sql(param['input']['ts_server'], param['input']['ts_database'], param['input']['sites_table'], ['ExtSiteID', 'SwazGroupName', 'SwazName'], where_in={'ExtSiteID': usage2.Wap.unique().tolist()})
+        sites1.rename(columns={'ExtSiteID': 'Wap'}, inplace=True)
 
+        usage0 = pd.merge(sites1, usage2, on='Wap')
+        usage0['Mon'] = usage0.Date.dt.month
 
+        usage0['MonRatio'] = usage0.SwUsage/usage0.SwRestrAllo
+        usage0['YrRatio'] = usage0.SwUsageYr/usage0.SwRestrAlloYr
 
+        usage0.set_index(['Wap', 'Date', 'WaterUse'], inplace=True)
 
+        filter1 = (usage0['YrRatio'] >= 0.04) & (usage0['YrRatio'] <= 2) & (usage0['MonRatio'] >= 0.001)
 
-        ## Read in data
-        datasets = mssql.rd_sql(server, database, dataset_type_table, ['DatasetTypeID', 'CTypeID'], where_in={'FeatureID': [1], 'MTypeID': [2], 'CTypeID': [1, 2], 'DataCodeID': [1]})
+        usage3 = usage0[filter1].reset_index().copy()
 
-        site_summ1 = mssql.rd_sql(server, database, ts_summ_table, where_in={'DatasetTypeID': datasets.DatasetTypeID.tolist()})
-        site_summ1.FromDate = pd.to_datetime(site_summ1.FromDate)
-        site_summ1.ToDate = pd.to_datetime(site_summ1.ToDate)
+        res_swaz1 = usage3.groupby(['SwazGroupName', 'SwazName', 'WaterUse', 'Mon']).MonRatio.mean()
+        res_grp1 = usage3.groupby(['SwazGroupName', 'WaterUse', 'Mon']).MonRatio.mean()
+        res_grp1.name = 'GrpRatio'
 
-        rec_datasets = datasets[datasets.CTypeID == 1].DatasetTypeID.tolist()
-        man_datasets = datasets[datasets.CTypeID == 2].DatasetTypeID.tolist()
+        res_grp2 = usage3.groupby(['WaterUse', 'Mon']).MonRatio.mean()
+        res_grp2.name = 'GrossRatio'
 
-        rec_summ1 = site_summ1[site_summ1.DatasetTypeID.isin(rec_datasets) & (site_summ1.FromDate <= param['from_date']) & (site_summ1.ToDate >= param['to_date'])].sort_values('ToDate', ascending=False).drop_duplicates('ExtSiteID').copy()
+        all1 = usage0.groupby(['SwazGroupName', 'SwazName', 'WaterUse', 'Mon']).Mon.first()
 
-        flow_sites_gdf = takes.flow_sites_gdf.copy()
+        res_swaz2 = pd.concat([res_swaz1, all1], axis=1).drop('Mon', axis=1)
+        res_swaz3 = pd.merge(res_swaz2.reset_index(), res_grp1.reset_index(), on=['SwazGroupName', 'WaterUse', 'Mon'], how='left')
+        res_swaz4 = pd.merge(res_swaz3, res_grp2.reset_index(), on=['WaterUse', 'Mon'], how='left')
 
-        sites_rec_bool = flow_sites_gdf.FlowSite.isin(rec_summ1.ExtSiteID.unique())
+        res_swaz4.loc[res_swaz4.MonRatio.isnull(), 'MonRatio'] = res_swaz4.loc[res_swaz4.MonRatio.isnull(), 'GrpRatio']
 
-        sites_rec1 = flow_sites_gdf[sites_rec_bool].copy()
-        sites_man1 = flow_sites_gdf[~sites_rec_bool].copy()
+        res_swaz4.loc[res_swaz4.MonRatio.isnull(), 'MonRatio'] = res_swaz4.loc[res_swaz4.MonRatio.isnull(), 'GrossRatio']
 
-        flow_rec_sites1 = mssql.rd_sql(server, database, site_table, ['ExtSiteID', 'NZTMX', 'NZTMY'], where_in={'ExtSiteID': rec_summ1.ExtSiteID.unique().tolist()})
+        res_swaz5 = res_swaz4.drop(['GrpRatio', 'GrossRatio'], axis=1).copy()
 
-        flow_rec_sites2 = vector.xy_to_gpd('ExtSiteID', 'NZTMX', 'NZTMY', flow_rec_sites1)
+        ### Estimate monthly usage by WAP
 
-        ## Estimate flow where recorder doesn't exist
+        usage4 = pd.merge(usage0.drop(['MonRatio', 'YrRatio', 'SwRestrAlloYr', 'SwUsageYr'], axis=1).reset_index(), res_swaz5, on=['SwazGroupName', 'SwazName', 'WaterUse', 'Mon'], how='left').set_index(['Wap', 'Date', 'WaterUse'])
 
-        sites_man2 = sites_man1.copy()
-        sites_man2['geometry'] = sites_man1.buffer(buffer_dis)
+        usage4.loc[~filter1, 'SwUsage'] = usage4.loc[~filter1, 'SwRestrAllo'] * usage4.loc[~filter1, 'MonRatio']
 
-        rec_sites2 = vector.sel_sites_poly(flow_rec_sites2, sites_man2)
+        usage_rate = usage4.groupby(level=['Wap', 'Date'])[['SwUsage']].sum().reset_index().copy()
+        usage_rate.rename(columns={'SwUsage': 'SwUsageRate'}, inplace=True)
 
-        rec_ts_data1 = mssql.rd_sql_ts(server, database, ts_table, 'ExtSiteID', 'DateTime', 'Value', from_date=param['from_date'], to_date=param['to_date'], where_in={'ExtSiteID': rec_sites2.ExtSiteID.tolist(), 'DatasetTypeID': rec_summ1.DatasetTypeID.unique().tolist()})
+        days1 = usage_rate.Date.dt.daysinmonth
+        usage_rate['SwUsageRate'] = usage_rate['SwUsageRate'] / days1 /24/60/60
 
-        rec_ts_data2 = rec_ts_data1.Value.unstack(0).interpolate('time', limit=10).dropna(axis=1)
+        usage4.reset_index(inplace=True)
 
-        rec_flow1 = rec_ts_data2.loc[:, rec_ts_data2.columns.isin(sites_rec1.FlowSite)].copy()
+        ## Save results
+        if hasattr(self, 'output_path'):
+            run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
 
-        man_ts_data1 = mssql.rd_sql_ts(server, database, ts_table, 'ExtSiteID', 'DateTime', 'Value', from_date=param['from_date'], to_date=param['to_date'], where_in={'ExtSiteID': sites_man1.FlowSite.tolist(), 'DatasetTypeID': man_datasets})
+            swaz_mon_ratio_csv = param['output']['swaz_mon_ratio_csv'].format(run_date=run_time)
+            res_swaz5.to_csv(os.path.join(self.output_path, swaz_mon_ratio_csv), index=False)
+            allo_usage_wap_swaz_csv = param['output']['allo_usage_wap_swaz_csv'].format(run_date=run_time)
+            usage4.to_csv(os.path.join(self.output_path, allo_usage_wap_swaz_csv), index=False)
+            wap_sw_mon_usage_csv = param['output']['wap_sw_mon_usage_csv'].format(run_date=run_time)
+            usage_rate.to_csv(os.path.join(self.output_path, wap_sw_mon_usage_csv), index=False)
 
-        man_ts_data2 = man_ts_data1.Value.unstack(0)
+        setattr(self, 'mon_swaz_usage_ratio', res_swaz5)
+        setattr(self, 'usage_rate', usage_rate)
+        return usage_rate
 
-        reg_lst = []
-        new_lst = []
 
-        for col in man_ts_data2:
-            site0 = sites_man1[sites_man1.FlowSite == col]
+    def naturalisation(self):
+        """
 
-            site1 = gpd.GeoDataFrame(geometry=site0.buffer(buffer_dis))
+        """
+        if not hasattr(self, 'usage_rate'):
+            usage_rate = self.usage_est()
+        else:
+            usage_rate = self.usage_rate.copy()
+        if not hasattr(self, 'flow'):
+            flow = self.flow_est()
+        else:
+            flow = self.flow.copy()
 
-            rec_sites3 = vector.sel_sites_poly(flow_rec_sites2, site1)
-            rec_ts_data3 = rec_ts_data2.loc[:, rec_ts_data2.columns.isin(rec_sites3.ExtSiteID)].copy()
+        waps1 = self.waps_gdf.drop(['geometry', 'SwazGroupName', 'SwazName'], axis=1).copy()
 
-            rec_ts_data4 = rec_ts_data3.copy()
-            rec_ts_data4[rec_ts_data4 <= 0] = np.nan
+        usage_rate = usage_rate[usage_rate.Wap.isin(waps1.Wap.unique())].copy()
 
-            man_ts_data3 = man_ts_data2.loc[:, [site0.FlowSite.iloc[0]]].copy()
-            man_ts_data3[man_ts_data3 <= 0] = np.nan
+        days1 = usage_rate.Date.dt.daysinmonth
+        days2 = pd.to_timedelta((days1/2).round().astype('int32'), unit='D')
 
-            lm1 = LM(rec_ts_data4, man_ts_data3)
-            res1 = lm1.predict(n_ind=1, x_transform='log', y_transform='log', min_obs=param['min_gaugings'])
-            res2 = lm1.predict(n_ind=2, x_transform='log', y_transform='log', min_obs=param['min_gaugings'])
+        usage_rate0 = usage_rate.copy()
 
-            f = [res1.summary_df['f value'].iloc[0], res2.summary_df['f value'].iloc[0]]
+        usage_rate0['Date'] = usage_rate0['Date'] - days2
 
-            val = f.index(max(f))
+        grp1 = usage_rate.groupby('Wap')
+        first1 = grp1.first()
+        last1 = grp1.last()
 
-            if val == 0:
-                reg_lst.append(res1.summary_df)
+        first1.loc[:, 'Date'] = pd.to_datetime(first1.loc[:, 'Date'].dt.strftime('%Y-%m') + '-01')
 
-                s1 = res1.summary_df.iloc[0]
+        usage_rate1 = pd.concat([first1, usage_rate0.set_index('Wap'), last1], sort=True).reset_index()
 
-                d1 = rec_ts_data3[s1['x sites']].copy()
-                d1[d1 <= 0] = 0.001
+        usage_rate1.set_index('Date', inplace=True)
 
-                new_data1 = np.exp(np.log(d1) * float(s1['x slopes']) + float(s1['y intercept']))
-                new_data1.name = col
-                new_data1[new_data1 <= 0] = 0
-            else:
-                reg_lst.append(res2.summary_df)
+        usage_daily_rate = usage_rate1.groupby('Wap').apply(lambda x: x.resample('D').interpolate(method='pchip')['SwUsageRate']).reset_index()
 
-                s1 = res2.summary_df.iloc[0]
-                x_sites = s1['x sites'].split(', ')
-                x_slopes = [float(s) for s in s1['x slopes'].split(', ')]
-                intercept = float(s1['y intercept'])
+        ## Combine usage with site data
 
-                d1 = rec_ts_data3[x_sites[0]].copy()
-                d1[d1 <= 0] = 0.001
-                d2 = rec_ts_data3[x_sites[1]].copy()
-                d2[d2 <= 0] = 0.001
+#        print('-> Combine usage with site data')
 
-                new_data1 = np.exp((np.log(d1) * float(x_slopes[0])) + (np.log(d2) * float(x_slopes[1])) + intercept)
-                new_data1.name = col
-                new_data1[new_data1 <= 0] = 0
+        usage_rate3 = pd.merge(waps1, usage_daily_rate.reset_index(), on='Wap')
 
-            new_lst.append(new_data1)
+        site_rate = usage_rate3.groupby(['ExtSiteID', 'Date'])[['SwUsageRate']].sum().reset_index()
 
-        new_data2 = pd.concat(new_lst, axis=1)
-        reg_df = pd.concat(reg_lst).reset_index()
+        ## Add usage to flow
+#        print('-> Add usage to flow')
 
-        flow = pd.concat([rec_flow1, new_data2], axis=1)
+        flow1 = flow.stack().reset_index()
+        flow1.columns = ['Date', 'ExtSiteID', 'Flow']
 
-        flow.round(3).to_csv(os.path.join(results_path, flow_csv))
-        reg_df.to_csv(os.path.join(results_path, reg_flow_csv), index=False)
+        flow2 = pd.merge(flow1, site_rate, on=['ExtSiteID', 'Date'], how='left').set_index(['ExtSiteID', 'Date']).sort_index()
+        flow2.loc[flow2.SwUsageRate.isnull(), 'SwUsageRate'] = 0
 
+        flow2['NatFlow'] = flow2['Flow'] + flow2['SwUsageRate']
 
+        nat_flow = flow2.unstack(0).round(3)
 
+        ## Save results
+        if hasattr(self, 'output_path'):
+            run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
 
+            nat_flow_csv = param['output']['nat_flow_csv'].format(run_date=run_time)
+            nat_flow.to_csv(os.path.join(self.output_path, nat_flow_csv))
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        setattr(self, 'nat_flow', nat_flow)
+        return nat_flow
 
 
 

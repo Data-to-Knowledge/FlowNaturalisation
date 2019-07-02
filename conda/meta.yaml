@@ -1,6 +1,6 @@
 {% set name = "FlowNaturalisation" %}
-{% set version = "0.0.1" %}
-{% set sha256 = "2aa64383fd201da1a085e5a7afaca86fbd9958dde2f63162882fdc7e83098b93" %}
+{% set version = "0.0.2" %}
+{% set sha256 = "c54d498d7a3abb9318498810720e99616fc06c3ee1f59d0e4e6109cc02de8f73" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -44,7 +44,7 @@ requirements:
 
 test:
   imports:
-    - flownat
+    - flownat.core
 
 about:
   home: https://github.com/Data-to-Knowledge/FlowNaturalisation
