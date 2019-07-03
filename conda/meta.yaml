@@ -1,6 +1,6 @@
 {% set name = "FlowNaturalisation" %}
-{% set version = "0.0.2" %}
-{% set sha256 = "c54d498d7a3abb9318498810720e99616fc06c3ee1f59d0e4e6109cc02de8f73" %}
+{% set version = "0.0.5" %}
+{% set sha256 = "e936fca410a684fae1032f479a07f9f436832722babefd0cc113ccea9d13450b" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -36,6 +36,7 @@ requirements:
     - setuptools
   run:
     - python
+    - pyyaml
     - pdsql>=1.2
     - gistools
     - ecandbparams

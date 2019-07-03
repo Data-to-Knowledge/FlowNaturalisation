@@ -29,7 +29,29 @@ with open(os.path.join(base_dir, 'parameters.yml')) as param:
 
 class FlowNat(object):
     """
+    Class to perform several operations to ultimately naturalise flow data.
+    Initialise the class with the following parameters.
 
+    Parameters
+    ----------
+    from_date : str
+        The start date for the flow record.
+    to_date : str
+        The end of of the flow record.
+    min_gaugings : int
+        The minimum number of gaugings required for the regressions. Default is 8.
+    rec_data_code : str
+        Either 'RAW' for the raw telemetered recorder data, or 'Primary' for the quality controlled recorder data. Default is 'Primary'.
+    input_sites : str, int, list, or None
+        Flow sites (either recorder or gauging) to be naturalised. If None, then the input_sites need to be defined later. Default is None.
+    output_path : str or None
+        Path to save the processed data, or None to not save them.
+    load_rec : bool
+        should the REC rivers and catchment GIS layers be loaded in at initiation?
+
+    Returns
+    -------
+    FlowNat instance
     """
 
     def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None, load_rec=False):
@@ -49,29 +71,6 @@ class FlowNat(object):
             self.load_rec()
 
         pass
-
-#    def data_code(self, rec_data_code='Primary'):
-#        """
-#        Options are RAW and Primary.
-#        """
-#
-#
-#    def date_range(self, from_date=None, to_date=None):
-#        """
-#
-#        """
-#
-#
-#    def min_gaugings(self, min_gaugings=8):
-#        """
-#
-#        """
-#
-#
-#    def buffer_dis(self, buffer_dis=50000):
-#        """
-#
-#        """
 
 
     def flow_datasets_all(self, rec_data_code='Primary'):

@@ -17,8 +17,8 @@ min_gaugings=8
 rec_data_code='Primary'
 output_path=r'E:\ecan\git\Cwms\Ecan.Cwms.Ashburton\results'
 input_sites = ['69618', '69635', '69616', '69615', '168833']
-input_sites = ['69618', '69635', '69616', '69615']
-input_sites = ['168833']
+#input_sites = ['69618', '69635', '69616', '69615']
+#input_sites = ['168833']
 
 
 self = FlowNat(from_date, to_date, input_sites=input_sites, output_path=output_path, load_rec=True)

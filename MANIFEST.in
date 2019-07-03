@@ -3,3 +3,4 @@ include LICENSE.txt
 
 # Include the data files
 recursive-include data *
+include flownat/*.yml
