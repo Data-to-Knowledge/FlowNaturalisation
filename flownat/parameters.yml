@@ -1,7 +1,27 @@
-project_path: E:\ecan\git\Cwms\Ecan.Cwms.Ashburton\results
-ts_server: edwprod01
-permit_server: edwdev01
-from_date: '2007-07-31'
-to_date: '2018-06-30'
-min_gaugings: 8
-buffer_dis: 50000
+input:
+  ts_server: edwprod01
+  ts_database: Hydro
+  ts_table: 'TSDataNumericDaily'
+  ts_summ_table: 'TSDataNumericDailySumm'
+  ts_dataset_table: vDatasetTypeNamesActive
+  sites_table: 'ExternalSite'
+
+  permit_server: edwdev01
+  permit_database: 'ConsentsReporting'
+  crc_wap_table: 'reporting.CrcAlloSiteSumm'
+  crc_status: ['Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Replaced', 'Terminated - Cancelled']
+
+  rec_rivers_sql: 'rec_rivers_gis'
+  rec_catch_sql: 'rec_catch_gis'
+
+output:
+  catch_del_shp: 'catch_del_{run_date}.shp'
+  allo_data_csv: 'allo_data_{run_date}.csv'
+  waps_shp: 'waps_{run_date}.shp'
+  flow_sites_shp: 'flow_sites_{run_date}.shp'
+  flow_csv: 'flow_data_{run_date}.csv'
+  reg_flow_csv: 'reg_flow_{run_date}.csv'
+  swaz_mon_ratio_csv: 'swaz_mon_ratio_{run_date}.csv'
+  allo_usage_wap_swaz_csv: 'allo_usage_wap_swaz_{run_date}.csv'
+  wap_sw_mon_usage_csv: 'wap_sw_monthly_usage_rate_{run_date}.csv'
+  nat_flow_csv: 'nat_flow_data_{run_date}.csv'
