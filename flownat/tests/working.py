@@ -21,7 +21,7 @@ input_sites = ['69618', '69635', '69616', '69615', '168833']
 #input_sites = ['168833']
 
 
-self = FlowNat(from_date, to_date, input_sites=input_sites, output_path=output_path, load_rec=True)
+self = FlowNat(from_date, to_date, input_sites=input_sites, load_rec=True)
 catch_del1 = self.catch_del()
 allo_wap = self.upstream_takes()
 usage_rate = self.usage_est()
