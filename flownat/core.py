@@ -56,7 +56,29 @@ class FlowNat(object):
 
     def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None, load_rec=False):
         """
+        Class to perform several operations to ultimately naturalise flow data.
+        Initialise the class with the following parameters.
 
+        Parameters
+        ----------
+        from_date : str
+            The start date for the flow record.
+        to_date : str
+            The end of of the flow record.
+        min_gaugings : int
+            The minimum number of gaugings required for the regressions. Default is 8.
+        rec_data_code : str
+            Either 'RAW' for the raw telemetered recorder data, or 'Primary' for the quality controlled recorder data. Default is 'Primary'.
+        input_sites : str, int, list, or None
+            Flow sites (either recorder or gauging) to be naturalised. If None, then the input_sites need to be defined later. Default is None.
+        output_path : str or None
+            Path to save the processed data, or None to not save them.
+        load_rec : bool
+            should the REC rivers and catchment GIS layers be loaded in at initiation?
+
+        Returns
+        -------
+        FlowNat instance
         """
         setattr(self, 'from_date', from_date)
         setattr(self, 'to_date', to_date)
@@ -186,6 +208,7 @@ class FlowNat(object):
             print(', '.join(bad_sites) + ' sites are not available for naturalisation')
 
         flow_sites_gdf = sites_gdf[sites_gdf.ExtSiteID.isin(input_sites)].copy()
+
         ## Save if required
         if hasattr(self, 'output_path'):
             run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
@@ -195,6 +218,19 @@ class FlowNat(object):
         setattr(self, 'sites_gdf', sites_gdf)
         setattr(self, 'flow_sites_gdf', flow_sites_gdf)
         setattr(self, 'input_summ', input_summ1)
+
+        ## Remove existing attributes if they exist
+        if hasattr(self, 'catch_gdf'):
+            delattr(self, 'catch_gdf')
+        if hasattr(self, 'waps_gdf'):
+            delattr(self, 'waps_gdf')
+        if hasattr(self, 'flow'):
+            delattr(self, 'flow')
+        if hasattr(self, 'usage_rate'):
+            delattr(self, 'usage_rate')
+        if hasattr(self, 'nat_flow'):
+            delattr(self, 'nat_flow')
+
         return input_summ1
 
 
