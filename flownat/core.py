@@ -110,7 +110,22 @@ class FlowNat(object):
 
     def flow_datasets(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary'):
         """
+        Function to process the flow datasets
 
+        Parameters
+        ----------
+        from_date : str
+            The start date for the flow record.
+        to_date : str
+            The end of of the flow record.
+        min_gaugings : int
+            The minimum number of gaugings required for the regressions. Default is 8.
+        rec_data_code : str
+            Either 'RAW' for the raw telemetered recorder data, or 'Primary' for the quality controlled recorder data. Default is 'Primary'.
+
+        Returns
+        -------
+        DataFrame
         """
         if not hasattr(self, 'summ_all') | (rec_data_code != self.rec_data_code):
             self.flow_datasets_all(rec_data_code=rec_data_code)
@@ -144,7 +159,16 @@ class FlowNat(object):
 
     def process_sites(self, input_sites):
         """
+        Function to process the sites.
 
+        Parameters
+        ----------
+        input_sites : str, int, list, or None
+            Flow sites (either recorder or gauging) to be naturalised. If None, then the input_sites need to be defined later. Default is None.
+
+        Returns
+        -------
+        DataFrame
         """
         ## Checks
         if isinstance(input_sites, (str, int)):
@@ -195,7 +219,11 @@ class FlowNat(object):
 
     def catch_del(self):
         """
+        Catchment delineation function using the REC rivers and catchment GIS layers.
 
+        Returns
+        -------
+        GeoDataFrame of Catchments.
         """
         ## Read in GIS data
         if not hasattr(self, 'rec_rivers'):
@@ -217,7 +245,12 @@ class FlowNat(object):
 
     def upstream_takes(self):
         """
+        Function to determine the upstream water abstraction sites from the catchment delineation.
 
+        Returns
+        -------
+        DataFrame
+            allocation data
         """
         if not hasattr(self, 'catch_gdf'):
             catch_gdf = self.catch_del()
@@ -259,7 +292,16 @@ class FlowNat(object):
 
     def flow_est(self, buffer_dis=50000):
         """
+        Function to query and/or estimate flow at the input_sites.
 
+        Parameters
+        ----------
+        buffer_dis : int
+            The search radius for the regressions in meters.
+
+        Returns
+        -------
+        DataFrame of Flow
         """
 
         if self.input_summ.CollectionType.isin(['Recorder']).any():
@@ -375,7 +417,12 @@ class FlowNat(object):
 
     def usage_est(self):
         """
+        Function to estimate abstraction. Uses measured abstraction with the associated allocation to estimate mean monthly ratios in the SWAZs and SWAZ groups and applies them to abstraction locations that are missing measured abstractions.
 
+        Returns
+        -------
+        DataFrame
+            of the usage rate
         """
         if not hasattr(self, 'waps_gdf'):
             allo_wap = self.upstream_takes()
@@ -459,7 +506,12 @@ class FlowNat(object):
 
     def naturalisation(self):
         """
+        Function to put all of the previous functions together to estimate the naturalised flow at the input_sites. It takes the estimated usage rates above each input site and adds that back to the flow.
 
+        Returns
+        -------
+        DataFrame
+            of measured flow, upstream usage rate, and naturalised flow
         """
         if not hasattr(self, 'usage_rate'):
             usage_rate = self.usage_est()

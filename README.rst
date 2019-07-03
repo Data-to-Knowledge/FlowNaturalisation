@@ -3,25 +3,18 @@ FlowNaturalisation
 
 This git repository contains project code for the flow naturalisation procedure. The procedure has several modules for performing different tasks that ultimately combine for the naturalisation.
 
+The base class (FlowNat) initialises the tool with a from_date, to_date, min_gaugings, input_sites, and output_path. This sets up and prepares a lot of datasets for the successive modules.
+
 Modules:
-  - Catchment delineation and selection of upstream takes
-  - Estimating flow when the flow doesn't exist during the required period
-  - Estimate water usage when the usage doesn't exist during the required period
-  - Naturalise the flows
+  - Querying and/or estimating flow at the input_sites
+  - Catchment delineation above the input_sites
+  - Selecting the upstream water abstraction sites from the catchment delineation
+  - Querying and Estimating water usage when the usage doesn't exist
+  - Flow naturalisation
 
-Inputs
-------
-The first step is to create a csv file of site numbers that should be naturalised. This csv should be placed into the inputs folder structured according to the example csv file currently there.
-
-Parameters
-----------
-In the python folder there is a parameters.ini that sets several global parameters for the modules. The key ones are the project_path, from_date, and to_date. The project_path is the root path for the naturalisation project. Below this paath should be the inputs and results folders. The from_date and to_date parameters is the time period that the naturalisation will be performed over.
-
-Run the procedure
------------------
-To run the code, go to the python subfolder and run the install_env.bat (you might need admin permissions). This will install the python environment needed to run the code. Once that completes, run the main.bat and the procedures to naturalise the flows will run.
-
-The results are placed in the results folder with a date stamp as part of the name. If those results have not been run for the current day, the procedure re-runs all procedures and produces new results. If results already exist for the current day, then the procedure will simply read in those existing results for the further processes. To force a procedure to re-run on the current day, simply delete (or rename) the particular result file and re-run the main.bat.
+Input Parameters
+----------------
+The base class (FlowNat) initialises the tool with a from_date, to_date, min_gaugings, input_sites, rec_data_code, and output_path. This sets up and prepares a lot of datasets for the successive modules. If all of those input parameters are defined at initialisation, then all of the successive modules/methods will not require any other input.
 
 Methods
 -------
