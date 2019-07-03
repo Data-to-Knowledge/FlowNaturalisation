@@ -4,12 +4,11 @@ Created on Tue Jul  2 09:25:41 2019
 
 @author: michaelek
 """
+import pytest
 from flownat import FlowNat
 import pandas as pd
 
 pd.options.display.max_columns = 10
-
-
 
 from_date='2010-07-01'
 to_date='2018-06-30'
