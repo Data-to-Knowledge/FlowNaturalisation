@@ -101,11 +101,11 @@ class FlowNat(object):
         if catch_del == 'rec':
             self.load_rec()
         elif catch_del == 'internal':
-            catch_gdf = pd.read_pickle(os.path.join(base_dir, 'datasets', param['input']['catch_del_file']))
-            setattr(self, 'catch_gdf', catch_gdf)
+            catch_gdf_all = pd.read_pickle(os.path.join(base_dir, 'datasets', param['input']['catch_del_file']))
+            setattr(self, 'catch_gdf_all', catch_gdf_all)
         elif catch_del.endswith('shp'):
-            catch_gdf = gpd.read_file(catch_del)
-            setattr(self, 'catch_gdf', catch_gdf)
+            catch_gdf_all = gpd.read_file(catch_del)
+            setattr(self, 'catch_gdf_all', catch_gdf_all)
         else:
             raise ValueError('Please read docstrings for options for catch_del argument')
 
@@ -280,12 +280,16 @@ class FlowNat(object):
         -------
         GeoDataFrame of Catchments.
         """
-        ## Read in GIS data
-        if not hasattr(self, 'rec_rivers'):
-            self.load_rec()
+        if hasattr(self, 'catch_gdf_all'):
+            catch_gdf =  self.catch_gdf_all[self.catch_gdf_all.ExtSiteID.isin(self.input_summ.ExtSiteID)].copy()
+        else:
 
-        ## Catch del
-        catch_gdf = rec.catch_delineate(self.flow_sites_gdf, self.rec_rivers, self.rec_catch)
+            ## Read in GIS data
+            if not hasattr(self, 'rec_rivers'):
+                self.load_rec()
+
+            ## Catch del
+            catch_gdf = rec.catch_delineate(self.flow_sites_gdf, self.rec_rivers, self.rec_catch)
 
         ## Save if required
         if hasattr(self, 'output_path'):
@@ -309,8 +313,6 @@ class FlowNat(object):
         """
         if not hasattr(self, 'catch_gdf'):
             catch_gdf = self.catch_del()
-        else:
-            catch_gdf = self.catch_gdf[self.catch_gdf.ExtSiteID.isin(self.input_summ.ExtSiteID)].copy()
 
         ### WAP selection
         wap1 = mssql.rd_sql(param['input']['permit_server'], param['input']['permit_database'], param['input']['crc_wap_table'], ['ExtSiteID'], where_in={'ConsentStatus': param['input']['crc_status']}).ExtSiteID.unique()

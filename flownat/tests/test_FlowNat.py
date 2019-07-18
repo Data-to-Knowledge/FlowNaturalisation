@@ -15,8 +15,8 @@ to_date='2018-06-30'
 min_gaugings=8
 rec_data_code='Primary'
 #output_path=r'E:\ecan\git\Cwms\Ecan.Cwms.Ashburton\results'
-input_sites1 = ['69618', '69635', '69616', '69615', '168833']
-input_sites2 = ['69618', '69635', '69616', '69615']
+input_sites1 = ['69618', '69635', '168833']
+input_sites2 = ['69618', '69635']
 input_sites3 = ['168833']
 
 ########################################
@@ -29,35 +29,13 @@ def test_init_FlowNat():
     assert len(f1.summ) > 400
 
 
-f1 = FlowNat(from_date, to_date)
-
-
 @pytest.mark.parametrize('input_sites', [input_sites1, input_sites2, input_sites3])
 def test_nat(input_sites):
-    summ1 = f1.process_sites(input_sites)
+    f1 = FlowNat(from_date, to_date, input_sites=input_sites)
 
     nat_flow = f1.naturalisation()
 
-    assert (len(summ1) >= 1) & (len(nat_flow) > 2900)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+    assert (len(f1.summ) >= 1) & (len(nat_flow) > 2900)
 
 
 
