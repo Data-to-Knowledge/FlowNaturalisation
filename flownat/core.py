@@ -13,6 +13,12 @@ import os
 import yaml
 import pandas as pd
 from ecandbparams import sql_arg
+import geopandas as gpd
+try:
+    import plotly.offline as py
+    import plotly.graph_objs as go
+except:
+    print('install plotly for plot functions to work')
 
 #####################################
 ### Parameters
@@ -54,7 +60,7 @@ class FlowNat(object):
     FlowNat instance
     """
 
-    def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None, load_rec=False):
+    def __init__(self, from_date=None, to_date=None, min_gaugings=8, rec_data_code='Primary', input_sites=None, output_path=None, catch_del='internal'):
         """
         Class to perform several operations to ultimately naturalise flow data.
         Initialise the class with the following parameters.
@@ -73,8 +79,8 @@ class FlowNat(object):
             Flow sites (either recorder or gauging) to be naturalised. If None, then the input_sites need to be defined later. Default is None.
         output_path : str or None
             Path to save the processed data, or None to not save them.
-        load_rec : bool
-            should the REC rivers and catchment GIS layers be loaded in at initiation?
+        catch_del : str
+            Defines what should be used for the catchments associated with flow sites. 'rec' will perform a catchment delineation on-the-fly using the REC rivers and catchments GIS layers, 'internal' will use the pre-generated catchments stored in the package, or a path to a shapefile will use a user created catchments layer. The shapefile must at least have a column named ExtSiteID with the flow site numbers associated with the catchment geometry.
 
         Returns
         -------
@@ -89,8 +95,21 @@ class FlowNat(object):
         if input_sites is not None:
             input_summ1 = self.process_sites(input_sites)
 
-        if load_rec:
+        if not isinstance(catch_del, str):
+            raise ValueError('catch_del must be a string')
+
+        if catch_del == 'rec':
             self.load_rec()
+        elif catch_del == 'internal':
+            catch_gdf_all = pd.read_pickle(os.path.join(base_dir, 'datasets', param['input']['catch_del_file']))
+            setattr(self, 'catch_gdf_all', catch_gdf_all)
+        elif catch_del.endswith('shp'):
+            catch_gdf_all = gpd.read_file(catch_del)
+            setattr(self, 'catch_gdf_all', catch_gdf_all)
+        else:
+            raise ValueError('Please read docstrings for options for catch_del argument')
+
+
 
         pass
 
@@ -261,12 +280,16 @@ class FlowNat(object):
         -------
         GeoDataFrame of Catchments.
         """
-        ## Read in GIS data
-        if not hasattr(self, 'rec_rivers'):
-            self.load_rec()
+        if hasattr(self, 'catch_gdf_all'):
+            catch_gdf =  self.catch_gdf_all[self.catch_gdf_all.ExtSiteID.isin(self.input_summ.ExtSiteID)].copy()
+        else:
 
-        ## Catch del
-        catch_gdf = rec.catch_delineate(self.flow_sites_gdf, self.rec_rivers, self.rec_catch)
+            ## Read in GIS data
+            if not hasattr(self, 'rec_rivers'):
+                self.load_rec()
+
+            ## Catch del
+            catch_gdf = rec.catch_delineate(self.flow_sites_gdf, self.rec_rivers, self.rec_catch)
 
         ## Save if required
         if hasattr(self, 'output_path'):
@@ -290,8 +313,6 @@ class FlowNat(object):
         """
         if not hasattr(self, 'catch_gdf'):
             catch_gdf = self.catch_del()
-        else:
-            catch_gdf = self.catch_gdf.copy()
 
         ### WAP selection
         wap1 = mssql.rd_sql(param['input']['permit_server'], param['input']['permit_database'], param['input']['crc_wap_table'], ['ExtSiteID'], where_in={'ConsentStatus': param['input']['crc_status']}).ExtSiteID.unique()
@@ -303,6 +324,7 @@ class FlowNat(object):
         sites4 = sites4.merge(sites3.drop(['NZTMX', 'NZTMY'], axis=1), on='Wap')
 
         waps_gdf, poly1 = vector.pts_poly_join(sites4, catch_gdf, 'ExtSiteID')
+        waps_gdf.dropna(subset=['SwazName', 'SwazGroupName'], inplace=True)
 
         ### Get crc data
         allo1 = AlloUsage(crc_filter={'ExtSiteID': waps_gdf.Wap.unique().tolist(), 'ConsentStatus': param['input']['crc_status']}, from_date=self.from_date, to_date=self.to_date)
@@ -340,6 +362,8 @@ class FlowNat(object):
         DataFrame of Flow
         """
 
+        ### Read data if it exists
+
         if self.input_summ.CollectionType.isin(['Recorder']).any():
             rec_summ1 = self.input_summ[self.input_summ.CollectionType.isin(['Recorder'])].copy()
             rec_ts_data1 = mssql.rd_sql_ts(param['input']['ts_server'], param['input']['ts_database'], param['input']['ts_table'], ['ExtSiteID', 'DatasetTypeID'], 'DateTime', 'Value', from_date=self.from_date, to_date=self.to_date, where_in={'ExtSiteID': rec_summ1.ExtSiteID.tolist(), 'DatasetTypeID': rec_summ1.DatasetTypeID.unique().tolist()}).reset_index()
@@ -348,6 +372,8 @@ class FlowNat(object):
 
         else:
             rec_ts_data2 = pd.DataFrame()
+
+        ### Run correlations if necessary
 
         if self.input_summ.CollectionType.isin(['Manual Field']).any():
             man_summ1 = self.input_summ[self.input_summ.CollectionType.isin(['Manual Field'])].copy()
@@ -451,7 +477,7 @@ class FlowNat(object):
         return flow
 
 
-    def usage_est(self):
+    def usage_est(self, daily_usage_allo_ratio=2, yr_usage_allo_ratio=2, mon_usage_allo_ratio=3):
         """
         Function to estimate abstraction. Uses measured abstraction with the associated allocation to estimate mean monthly ratios in the SWAZs and SWAZ groups and applies them to abstraction locations that are missing measured abstractions.
 
@@ -468,7 +494,7 @@ class FlowNat(object):
         ## Get allo and usage data
         allo1 = AlloUsage(self.from_date, self.to_date, site_filter={'SwazGroupName': waps_gdf.SwazGroupName.unique().tolist()})
 
-        usage1 = allo1.get_ts(['Allo', 'RestrAllo', 'Usage'], 'M', ['Wap', 'WaterUse'])
+        usage1 = allo1.get_ts(['Allo', 'RestrAllo', 'Usage'], 'M', ['Wap', 'WaterUse'], daily_usage_allo_ratio=daily_usage_allo_ratio)
 
         usage2 = usage1.loc[usage1.SwRestrAllo > 0, ['SwRestrAllo', 'SwUsage']].reset_index().copy()
 
@@ -487,7 +513,10 @@ class FlowNat(object):
 
         usage0.set_index(['Wap', 'Date', 'WaterUse'], inplace=True)
 
-        filter1 = (usage0['YrRatio'] >= 0.04) & (usage0['YrRatio'] <= 2) & (usage0['MonRatio'] >= 0.001)
+        ### Create the filters and ratios
+
+        filter1 = (usage0['YrRatio'] >= 0.04) & (usage0['YrRatio'] <= yr_usage_allo_ratio) & (usage0['MonRatio'] <= mon_usage_allo_ratio)
+        filter1.name = 'filter'
 
         usage3 = usage0[filter1].reset_index().copy()
 
@@ -511,12 +540,12 @@ class FlowNat(object):
         res_swaz5 = res_swaz4.drop(['GrpRatio', 'GrossRatio'], axis=1).copy()
 
         ### Estimate monthly usage by WAP
-
         usage4 = pd.merge(usage0.drop(['MonRatio', 'YrRatio', 'SwRestrAlloYr', 'SwUsageYr'], axis=1).reset_index(), res_swaz5, on=['SwazGroupName', 'SwazName', 'WaterUse', 'Mon'], how='left').set_index(['Wap', 'Date', 'WaterUse'])
 
         usage4.loc[~filter1, 'SwUsage'] = usage4.loc[~filter1, 'SwRestrAllo'] * usage4.loc[~filter1, 'MonRatio']
 
-        usage_rate = usage4.groupby(level=['Wap', 'Date'])[['SwUsage']].sum().reset_index().copy()
+        usage5 = usage4.groupby(level=['Wap', 'Date'])[['SwUsage']].sum()
+        usage_rate = usage5.reset_index().copy()
         usage_rate.rename(columns={'SwUsage': 'SwUsageRate'}, inplace=True)
 
         days1 = usage_rate.Date.dt.daysinmonth
@@ -524,43 +553,32 @@ class FlowNat(object):
 
         usage4.reset_index(inplace=True)
 
-        ## Save results
-        if hasattr(self, 'output_path'):
-            run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
+        ### Remove bad values from the daily usage data and find the proportion of daily usage
+        filter2 = filter1.groupby(level=['Wap', 'Date']).max()
+        filter3 = filter2[filter2].reset_index().drop('filter', axis=1)
+        filter3['year'] = filter3.Date.dt.year
+        filter3['month'] = filter3.Date.dt.month
 
-            swaz_mon_ratio_csv = param['output']['swaz_mon_ratio_csv'].format(run_date=run_time)
-            res_swaz5.to_csv(os.path.join(self.output_path, swaz_mon_ratio_csv), index=False)
-            allo_usage_wap_swaz_csv = param['output']['allo_usage_wap_swaz_csv'].format(run_date=run_time)
-            usage4.to_csv(os.path.join(self.output_path, allo_usage_wap_swaz_csv), index=False)
-            wap_sw_mon_usage_csv = param['output']['wap_sw_mon_usage_csv'].format(run_date=run_time)
-            usage_rate.to_csv(os.path.join(self.output_path, wap_sw_mon_usage_csv), index=False)
+        daily1 = allo1.usage_ts_daily.drop('AllocatedRate', axis=1).copy()
+        daily1['year'] = daily1.Date.dt.year
+        daily1['month'] = daily1.Date.dt.month
 
-        setattr(self, 'mon_swaz_usage_ratio', res_swaz5)
-        setattr(self, 'usage_rate', usage_rate)
-        return usage_rate
+        daily2 = pd.merge(daily1, filter3.drop('Date', axis=1), on=['Wap', 'year', 'month'])
+        d2 = daily2.groupby(['Wap', pd.Grouper(key='Date', freq='M')])[['TotalUsage']].sum().round()
+        u3 = pd.concat([usage5, d2], axis=1, join='inner').reset_index()
 
+        u3['ratio'] = u3['SwUsage']/u3['TotalUsage']
+        u3.loc[u3.ratio.isnull(), 'ratio'] = 1
+        u3['year'] = u3.Date.dt.year
+        u3['month'] = u3.Date.dt.month
 
-    def naturalisation(self):
-        """
-        Function to put all of the previous functions together to estimate the naturalised flow at the input_sites. It takes the estimated usage rates above each input site and adds that back to the flow.
+        daily3 = pd.merge(daily2, u3.drop(['Date', 'SwUsage', 'TotalUsage'], axis=1), on=['Wap', 'year', 'month']).drop(['year', 'month'], axis=1)
+        daily3['TotalUsage'] = (daily3['TotalUsage'] * daily3['ratio']).round()
 
-        Returns
-        -------
-        DataFrame
-            of measured flow, upstream usage rate, and naturalised flow
-        """
-        if not hasattr(self, 'usage_rate'):
-            usage_rate = self.usage_est()
-        else:
-            usage_rate = self.usage_rate.copy()
-        if not hasattr(self, 'flow'):
-            flow = self.flow_est()
-        else:
-            flow = self.flow.copy()
+        daily3['TotalUsage'] = daily3['TotalUsage'] /24/60/60
 
-        waps1 = self.waps_gdf.drop(['geometry', 'SwazGroupName', 'SwazName'], axis=1).copy()
-
-        usage_rate = usage_rate[usage_rate.Wap.isin(waps1.Wap.unique())].copy()
+        ### Create daily usage for all Waps
+        usage_rate = usage_rate[usage_rate.Wap.isin(waps_gdf.Wap.unique())].copy()
 
         days1 = usage_rate.Date.dt.daysinmonth
         days2 = pd.to_timedelta((days1/2).round().astype('int32'), unit='D')
@@ -579,13 +597,56 @@ class FlowNat(object):
 
         usage_rate1.set_index('Date', inplace=True)
 
-        usage_daily_rate = usage_rate1.groupby('Wap').apply(lambda x: x.resample('D').interpolate(method='pchip')['SwUsageRate']).reset_index()
+        usage_daily_rate1 = usage_rate1.groupby('Wap').apply(lambda x: x.resample('D').interpolate(method='pchip')['SwUsageRate']).reset_index()
+
+        ## Imbed the actual usage
+        usage_daily_rate2 = pd.merge(usage_daily_rate1, daily3.drop('ratio', axis=1), on=['Wap', 'Date'], how='left')
+        usage_daily_rate2.loc[usage_daily_rate2.TotalUsage.notnull(), 'SwUsageRate'] = usage_daily_rate2.loc[usage_daily_rate2.TotalUsage.notnull(), 'TotalUsage']
+
+        usage_daily_rate = usage_daily_rate2.drop('TotalUsage', axis=1).copy()
+
+        ## Save results
+        if hasattr(self, 'output_path'):
+            run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
+
+            swaz_mon_ratio_csv = param['output']['swaz_mon_ratio_csv'].format(run_date=run_time)
+            res_swaz5.to_csv(os.path.join(self.output_path, swaz_mon_ratio_csv), index=False)
+            allo_usage_wap_swaz_csv = param['output']['allo_usage_wap_swaz_csv'].format(run_date=run_time)
+            usage4.to_csv(os.path.join(self.output_path, allo_usage_wap_swaz_csv), index=False)
+#            wap_sw_mon_usage_csv = param['output']['wap_sw_mon_usage_csv'].format(run_date=run_time)
+#            usage_rate.to_csv(os.path.join(self.output_path, wap_sw_mon_usage_csv), index=False)
+
+        setattr(self, 'mon_swaz_usage_ratio', res_swaz5)
+        setattr(self, 'allo_usage_wap_swaz', usage4)
+        setattr(self, 'usage_rate', usage_daily_rate)
+        return usage_daily_rate
+
+
+    def naturalisation(self):
+        """
+        Function to put all of the previous functions together to estimate the naturalised flow at the input_sites. It takes the estimated usage rates above each input site and adds that back to the flow.
+
+        Returns
+        -------
+        DataFrame
+            of measured flow, upstream usage rate, and naturalised flow
+        """
+        if not hasattr(self, 'usage_rate'):
+            usage_daily_rate = self.usage_est()
+        else:
+            usage_daily_rate = self.usage_rate.copy()
+        if not hasattr(self, 'flow'):
+            flow = self.flow_est()
+        else:
+            flow = self.flow.copy()
+
+        waps1 = self.waps_gdf.drop(['geometry', 'SwazGroupName', 'SwazName'], axis=1).copy()
 
         ## Combine usage with site data
 
 #        print('-> Combine usage with site data')
 
-        usage_rate3 = pd.merge(waps1, usage_daily_rate.reset_index(), on='Wap')
+        usage_rate3 = pd.merge(waps1, usage_daily_rate, on='Wap')
 
         site_rate = usage_rate3.groupby(['ExtSiteID', 'Date'])[['SwUsageRate']].sum().reset_index()
 
@@ -611,6 +672,75 @@ class FlowNat(object):
 
         setattr(self, 'nat_flow', nat_flow)
         return nat_flow
+
+
+    def plot(self, input_site):
+        """
+        Function to run and plot the detide results.
+
+        Parameters
+        ----------
+        output_path : str
+            Path to save the html file.
+
+        Returns
+        -------
+        DataFrame or Series
+        """
+
+        if hasattr(self, 'nat_flow'):
+            nat_flow = self.nat_flow.copy()
+        else:
+            nat_flow = self.naturalisation()
+
+        nat_flow1 = nat_flow.loc[:, (slice(None), input_site)]
+        nat_flow1.columns = nat_flow1.columns.droplevel(1)
+
+        colors1 = ['rgb(102,194,165)', 'rgb(252,141,98)', 'rgb(141,160,203)']
+
+        orig = go.Scattergl(
+            x=nat_flow1.index,
+            y=nat_flow1['Flow'],
+            name = 'Recorded Flow',
+            line = dict(color = colors1[2]),
+            opacity = 0.8)
+
+        usage = go.Scattergl(
+            x=nat_flow1.index,
+            y=nat_flow1['SwUsageRate'],
+            name = 'Stream Usage',
+            line = dict(color = colors1[1]),
+            opacity = 0.8)
+
+        nat = go.Scattergl(
+            x=nat_flow1.index,
+            y=nat_flow1['NatFlow'],
+            name = 'Naturalised Flow',
+            line = dict(color = colors1[0]),
+            opacity = 0.8)
+
+        data = [orig, usage, nat]
+
+        layout = dict(
+            title=input_site + ' Naturalisation',
+            yaxis={'title': 'Flow rate (m3/s)'},
+            dragmode='pan')
+
+        config = {"displaylogo": False, 'scrollZoom': True, 'showLink': False}
+
+        fig = dict(data=data, layout=layout)
+
+        ## Save results
+        if hasattr(self, 'output_path'):
+            run_time = pd.Timestamp.today().strftime('%Y-%m-%dT%H%M')
+
+            nat_flow_html = param['output']['nat_flow_html'].format(site=input_site, run_date=run_time)
+            py.plot(fig, filename = os.path.join(self.output_path, nat_flow_html), config=config)
+        else:
+            raise ValueError('plot must have an output_path set')
+
+        return nat_flow1
+
 
 
 

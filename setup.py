@@ -9,8 +9,8 @@ here = os.path.abspath(os.path.dirname(__file__))
 # General parameters
 name = 'FlowNaturalisation'
 main_package = 'flownat'
-# datasets = 'datasets'
-version = '0.0.7'
+datasets = 'datasets'
+version = '0.1.1'
 descrip = 'Tools to perform flow naturalisation in Caterbury'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
@@ -161,7 +161,7 @@ setup(
     # If using Python 2.6 or earlier, then these have to be included in
     # MANIFEST.in as well.
     package_data={  # Optional
-        main_package: ['*.yml'],
+        main_package: ['*.yml', datasets + '/*.xz'],
     },
 
     # Although 'package_data' is the preferred approach, in some case you may

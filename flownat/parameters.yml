@@ -13,6 +13,8 @@ input:
 
   rec_rivers_sql: 'rec_rivers_gis'
   rec_catch_sql: 'rec_catch_gis'
+  catch_del_file: catchment_delineation_rec.pkl.xz
+  # allocation_blocks: ['A', 'AA', 'Adapt.Vol', 'T', 'Opihi-AA', 'Opihi-AN', 'In Waitaki', 'Opihi-BA']
 
 output:
   catch_del_shp: 'catch_del_{run_date}.shp'
@@ -25,3 +27,4 @@ output:
   allo_usage_wap_swaz_csv: 'allo_usage_wap_swaz_{run_date}.csv'
   wap_sw_mon_usage_csv: 'wap_sw_monthly_usage_rate_{run_date}.csv'
   nat_flow_csv: 'nat_flow_data_{run_date}.csv'
+  nat_flow_html: 'nat_flow_{site}_{run_date}.html'
