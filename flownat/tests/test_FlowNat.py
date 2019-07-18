@@ -29,7 +29,7 @@ def test_init_FlowNat():
     assert len(f1.summ) > 400
 
 
-f1 = FlowNat(from_date, to_date, load_rec=True)
+f1 = FlowNat(from_date, to_date)
 
 
 @pytest.mark.parametrize('input_sites', [input_sites1, input_sites2, input_sites3])
