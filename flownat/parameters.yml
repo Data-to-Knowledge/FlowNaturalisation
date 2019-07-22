@@ -24,7 +24,8 @@ output:
   flow_csv: 'flow_data_{run_date}.csv'
   reg_flow_csv: 'reg_flow_{run_date}.csv'
   swaz_mon_ratio_csv: 'swaz_mon_ratio_{run_date}.csv'
-  allo_usage_wap_swaz_csv: 'allo_usage_wap_swaz_{run_date}.csv'
-  wap_sw_mon_usage_csv: 'wap_sw_monthly_usage_rate_{run_date}.csv'
+  allo_usage_wap_swaz_csv: 'allo_usage_wap_swaz_{run_date}.csv.bz2'
+  # wap_sw_mon_usage_csv: 'wap_sw_monthly_usage_rate_{run_date}.csv'
   nat_flow_csv: 'nat_flow_data_{run_date}.csv'
   nat_flow_html: 'nat_flow_{site}_{run_date}.html'
+  usage_rate_wap_csv: usage_rate_wap_{run_date}.csv.bz2

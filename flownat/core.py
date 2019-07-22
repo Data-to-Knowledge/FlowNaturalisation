@@ -613,8 +613,8 @@ class FlowNat(object):
             res_swaz5.to_csv(os.path.join(self.output_path, swaz_mon_ratio_csv), index=False)
             allo_usage_wap_swaz_csv = param['output']['allo_usage_wap_swaz_csv'].format(run_date=run_time)
             usage4.to_csv(os.path.join(self.output_path, allo_usage_wap_swaz_csv), index=False)
-#            wap_sw_mon_usage_csv = param['output']['wap_sw_mon_usage_csv'].format(run_date=run_time)
-#            usage_rate.to_csv(os.path.join(self.output_path, wap_sw_mon_usage_csv), index=False)
+            usage_rate_wap_csv = param['output']['usage_rate_wap_csv'].format(run_date=run_time)
+            usage_daily_rate.to_csv(os.path.join(self.output_path, usage_rate_wap_csv), index=False)
 
         setattr(self, 'mon_swaz_usage_ratio', res_swaz5)
         setattr(self, 'allo_usage_wap_swaz', usage4)
