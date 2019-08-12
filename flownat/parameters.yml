@@ -6,7 +6,7 @@ input:
   ts_dataset_table: vDatasetTypeNamesActive
   sites_table: 'ExternalSite'
 
-  permit_server: edwdev01
+  permit_server: edwprod01
   permit_database: 'ConsentsReporting'
   crc_wap_table: 'reporting.CrcAlloSiteSumm'
   crc_status: ['Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Replaced', 'Terminated - Cancelled']
