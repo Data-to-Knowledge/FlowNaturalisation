@@ -417,7 +417,12 @@ class FlowNat(object):
 
                 lm1 = LM(man_rec_ts_data3, man_ts_data3)
                 res1 = lm1.predict(n_ind=1, x_transform='log', y_transform='log', min_obs=self.min_gaugings)
+                if res1 is None:
+                    continue
+
                 res2 = lm1.predict(n_ind=2, x_transform='log', y_transform='log', min_obs=self.min_gaugings)
+                if res2 is None:
+                    continue
 
                 f = [res1.summary_df['f value'].iloc[0], res2.summary_df['f value'].iloc[0]]
 
