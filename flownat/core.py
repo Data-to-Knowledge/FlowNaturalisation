@@ -109,8 +109,6 @@ class FlowNat(object):
         else:
             raise ValueError('Please read docstrings for options for catch_del argument')
 
-
-
         pass
 
 
@@ -519,7 +517,6 @@ class FlowNat(object):
         usage0.set_index(['Wap', 'Date', 'WaterUse'], inplace=True)
 
         ### Create the filters and ratios
-
         filter1 = (usage0['YrRatio'] >= 0.04) & (usage0['YrRatio'] <= yr_usage_allo_ratio) & (usage0['MonRatio'] <= mon_usage_allo_ratio)
         filter1.name = 'filter'
 
@@ -602,10 +599,11 @@ class FlowNat(object):
 
         usage_rate1.set_index('Date', inplace=True)
 
-        usage_daily_rate1 = usage_rate1.groupby('Wap').apply(lambda x: x.resample('D').interpolate(method='pchip')['SwUsageRate']).reset_index()
+        usage_daily_rate1 = usage_rate1.groupby(['Wap']).apply(lambda x: x.resample('D').interpolate(method='pchip')['SwUsageRate']).stack()
+        usage_daily_rate1.name = 'SwUsageRate'
 
         ## Imbed the actual usage
-        usage_daily_rate2 = pd.merge(usage_daily_rate1, daily3.drop('ratio', axis=1), on=['Wap', 'Date'], how='left')
+        usage_daily_rate2 = pd.merge(usage_daily_rate1.reset_index(), daily3.drop('ratio', axis=1), on=['Wap', 'Date'], how='left')
         usage_daily_rate2.loc[usage_daily_rate2.TotalUsage.notnull(), 'SwUsageRate'] = usage_daily_rate2.loc[usage_daily_rate2.TotalUsage.notnull(), 'TotalUsage']
 
         usage_daily_rate = usage_daily_rate2.drop('TotalUsage', axis=1).copy()
@@ -674,6 +672,8 @@ class FlowNat(object):
 
             nat_flow_csv = param['output']['nat_flow_csv'].format(run_date=run_time)
             nat_flow.to_csv(os.path.join(self.output_path, nat_flow_csv))
+
+            setattr(self, 'nat_flow_csv', nat_flow_csv)
 
         setattr(self, 'nat_flow', nat_flow)
         return nat_flow
