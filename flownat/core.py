@@ -95,7 +95,7 @@ class FlowNat(object):
         setattr(self, 'permit_server', param['input']['permit_server'])
 
         self.save_path(output_path)
-        summ1 = self.flow_datasets(from_date=from_date, to_date=to_date, min_gaugings=min_gaugings, rec_data_code=rec_data_code)
+        summ1 = self.flow_datasets(from_date=from_date, to_date=to_date, min_gaugings=8, rec_data_code=rec_data_code)
         if input_sites is not None:
             input_summ1 = self.process_sites(input_sites)
 
@@ -575,7 +575,7 @@ class FlowNat(object):
             filter3['year'] = filter3.Date.dt.year
             filter3['month'] = filter3.Date.dt.month
 
-            daily1 = allo1.usage_ts_daily.copy()
+            daily1 = allo1.usage_ts_daily.drop('AllocatedRate', axis=1).copy()
             daily1['year'] = daily1.Date.dt.year
             daily1['month'] = daily1.Date.dt.month
 
