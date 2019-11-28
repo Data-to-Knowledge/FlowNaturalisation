@@ -10,6 +10,7 @@ from pdsql import mssql
 from gistools import rec, vector
 import pandas as pd
 from flownat import FlowNat
+import geopandas as gpd
 
 pd.options.display.max_columns = 10
 
@@ -18,7 +19,7 @@ pd.options.display.max_columns = 10
 
 min_gaugings = 8
 rec_data_code = 'Primary'
-output_path = r'E:\ecan\shared\projects\catchment_delineation'
+output_path = r'C:\ecan\shared\projects\catchment_delineation'
 shp1 = 'catchment_delineation_rec_2019-07-17b.shp'
 gpkg1 = 'catchment_delineation_rec_2019-07-17b.gpkg'
 geojson1 = 'catchment_delineation_rec_2019-07-17b.geojson'
@@ -29,6 +30,11 @@ pkl4 = 'catchment_delineation_rec_2019-07-17b.pkl.gzip'
 pkl5 = 'catchment_delineation_rec_2019-07-17b.pkl.zip'
 
 pkl2c = 'catchment_delineation_rec_2019-07-17c.pkl.xz'
+pkl2f = 'rec_2-4b.pkl.xz'
+pkl2g = 'rec_catch_2-4b.pkl.xz'
+
+rec_rivers_path = r'P:\WaterDataProgramme\Source Data\GDBs\river-environment-classification-canterbury-2010\river-environment-classification-canterbury-2010.gpkg'
+rec_catch_path = r'P:\WaterDataProgramme\Source Data\GDBs\river-environment-classification-watershed-canterbury-2010\river-environment-classification-watershed-canterbury-2010.gpkg'
 
 ###################################
 ###
@@ -85,11 +91,20 @@ df1 = pd.read_pickle(os.path.join(output_path, pkl2))
 c2.to_pickle(os.path.join(output_path, pkl2))
 
 
+rec_rivers.to_pickle(os.path.join(output_path, pkl2f))
+rec_catch.to_pickle(os.path.join(output_path, pkl2g))
+
+rec_catch1 = rec_catch[rec_catch.NZREACH.isin(rec_rivers.NZREACH)]
 
 
+rec_r1 = gpd.read_file(rec_rivers_path)
+rec_r2 = rec_r1[['NZREACH', 'NZFNODE', 'NZTNODE', 'ORDER', 'geometry']]
 
+rec_c1 = gpd.read_file(rec_catch_path)
+rec_c2 = rec_c1[['NZREACH', 'geometry']]
 
-
+rec_r2.to_pickle(os.path.join(output_path, pkl2f))
+rec_c2.to_pickle(os.path.join(output_path, pkl2g))
 
 
 
