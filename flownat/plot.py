@@ -11,7 +11,7 @@ except:
     print('install plotly for plot functions to work')
 
 
-def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', yaxis_label='water level (m)'):
+def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', yaxis_label='water level (m)', line_width=2):
     """
     Function to run and plot the detide results.
 
@@ -40,21 +40,24 @@ def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', 
         y=nat_flow1['Flow'],
         name = 'Recorded Flow',
         line = dict(color = colors1[0]),
-        opacity = 0.8)
+        opacity = 0.8,
+        line_width=line_width)
 
     usage = go.Scattergl(
         x=nat_flow1.index,
         y=nat_flow1['SwUsageRate'],
         name = 'Stream Usage',
         line = dict(color = colors1[1]),
-        opacity = 0.8)
+        opacity = 0.8,
+        line_width=line_width)
 
     nat = go.Scattergl(
         x=nat_flow1.index,
         y=nat_flow1['NatFlow'],
         name = 'Naturalised Flow',
         line = dict(color = colors1[2]),
-        opacity = 0.8)
+        opacity = 0.8,
+        line_width=line_width)
 
     data = [orig, usage, nat]
 
@@ -62,7 +65,7 @@ def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', 
         title=title,
         yaxis={'title': yaxis_label},
         dragmode='pan',
-        xaxis_rangeslider_visible=True)
+        xaxis_rangeslider_visible=False)
 
     config = {"displaylogo": False, 'scrollZoom': True, 'showLink': False}
 
