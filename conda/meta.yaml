@@ -1,6 +1,6 @@
 {% set name = "FlowNaturalisation" %}
-{% set version = "0.1.1" %}
-{% set sha256 = "8774f86936c02a9ac644af46be17c1b9967f031f8c9845aff814ef3ae73b41e6" %}
+{% set version = "0.1.4" %}
+{% set sha256 = "c51c272d06b5d6c271de20fd010a18e79330a3aed455462d7cc653ff82cd5745" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.

@@ -11,7 +11,7 @@ except:
     print('install plotly for plot functions to work')
 
 
-def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', yaxis_label='water level (m)'):
+def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', yaxis_label='Flow (m3/s)', line_width=2, axis_font_size=18, hover_font_size=18, legend_font_size=18, plot_bg=None, showgrid=False):
     """
     Function to run and plot the detide results.
 
@@ -35,38 +35,48 @@ def plot(self, input_site, output_path='nat_flow.html', title='Naturalisation', 
 
     colors1 = ['rgb(102,194,165)', 'rgb(252,141,98)', 'rgb(141,160,203)']
 
-    orig = go.Scattergl(
+    fig = go.Figure(layout=dict(
+        title=title,
+        yaxis={'title': yaxis_label},
+        dragmode='pan',
+        xaxis_rangeslider_visible=False,
+        legend=dict(font=dict(size=legend_font_size)),
+        plot_bgcolor=plot_bg,
+        paper_bgcolor=plot_bg))
+
+    fig.add_scattergl(
         x=nat_flow1.index,
         y=nat_flow1['Flow'],
         name = 'Recorded Flow',
         line = dict(color = colors1[0]),
-        opacity = 0.8)
+        opacity = 0.8,
+        line_width=line_width,
+        hoverlabel=dict(font=dict(size=hover_font_size)))
 
-    usage = go.Scattergl(
+    fig.add_scattergl(
         x=nat_flow1.index,
         y=nat_flow1['SwUsageRate'],
         name = 'Stream Usage',
         line = dict(color = colors1[1]),
-        opacity = 0.8)
+        opacity = 0.8,
+        line_width=line_width,
+        hoverlabel=dict(font=dict(size=hover_font_size)))
 
-    nat = go.Scattergl(
+    fig.add_scattergl(
         x=nat_flow1.index,
         y=nat_flow1['NatFlow'],
         name = 'Naturalised Flow',
         line = dict(color = colors1[2]),
-        opacity = 0.8)
-
-    data = [orig, usage, nat]
-
-    layout = dict(
-        title=title,
-        yaxis={'title': yaxis_label},
-        dragmode='pan',
-        xaxis_rangeslider_visible=True)
+        opacity = 0.8,
+        line_width=line_width,
+        hoverlabel=dict(font=dict(size=hover_font_size)))
 
     config = {"displaylogo": False, 'scrollZoom': True, 'showLink': False}
 
-    fig = dict(data=data, layout=layout)
+#    fig = dict(data=data, layout=layout)
+    fig.update_xaxes(title_font=dict(size=axis_font_size), tickfont=dict(size=axis_font_size), showgrid=showgrid)
+    fig.update_yaxes(title_font=dict(size=axis_font_size), tickfont=dict(size=axis_font_size), showgrid=showgrid)
+
     py.plot(fig, filename = output_path, config=config)
 
     return nat_flow1

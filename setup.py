@@ -10,7 +10,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 name = 'FlowNaturalisation'
 main_package = 'flownat'
 datasets = 'datasets'
-version = '0.1.1'
+version = '0.1.4'
 descrip = 'Tools to perform flow naturalisation in Caterbury'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
