@@ -5,6 +5,7 @@ Created on Tue Jul  2 09:04:41 2019
 @author: michaelek
 """
 import numpy as np
+import requests
 from pdsql import mssql
 from gistools import rec, vector
 from allotools import AlloUsage
@@ -12,8 +13,8 @@ from hydrolm import LM
 import os
 import yaml
 import pandas as pd
-from ecandbparams import sql_arg
 import geopandas as gpd
+import lzma
 try:
     import plotly.offline as py
     import plotly.graph_objs as go
@@ -28,6 +29,7 @@ base_dir = os.path.realpath(os.path.dirname(__file__))
 with open(os.path.join(base_dir, 'parameters.yml')) as param:
     param = yaml.safe_load(param)
 
+datasets_path = os.path.join(base_dir, 'datasets')
 
 #######################################
 ### Class
@@ -259,14 +261,29 @@ class FlowNat(object):
         """
 
         """
+
         if not hasattr(self, 'rec_rivers'):
-            sql1 = sql_arg()
+            try:
+                with lzma.open(os.path.join(datasets_path, param['input']['rec_rivers_file'])) as r:
+                    rec_rivers = pickle.loads(r.read())
+                with lzma.open(os.path.join(datasets_path, param['input']['rec_catch_file'])) as r:
+                    rec_catch = pickle.loads(r.read())
+            except:
+                print('Downloading rivers and catchments files...')
 
-            rec_rivers_dict = sql1.get_dict(param['input']['rec_rivers_sql'])
-            rec_catch_dict = sql1.get_dict(param['input']['rec_catch_sql'])
+                url1 = 'https://cybele.s3.us-west.stackpathstorage.com/mfe;rec;v2.4;rivers.gpd.pkl.xz'
+                r_resp = requests.get(url1)
+                with open(os.path.join(datasets_path, param['input']['rec_rivers_file']), 'wb') as r:
+                    r.write(r_resp.content)
+                with lzma.open(os.path.join(datasets_path, param['input']['rec_rivers_file'])) as r:
+                    rec_rivers = pickle.loads(r.read())
 
-            rec_rivers = mssql.rd_sql(**rec_rivers_dict)
-            rec_catch = mssql.rd_sql(**rec_catch_dict)
+                url2 = 'https://cybele.s3.us-west.stackpathstorage.com/mfe;rec;v2.4;catchments.gpd.pkl.xz'
+                r_resp = requests.get(url2)
+                with open(os.path.join(datasets_path, param['input']['rec_catch_file']), 'wb') as r:
+                    r.write(r_resp.content)
+                with lzma.open(os.path.join(datasets_path, param['input']['rec_catch_file'])) as r:
+                    rec_catch = pickle.loads(r.read())
 
             setattr(self, 'rec_rivers', rec_rivers)
             setattr(self, 'rec_catch', rec_catch)
@@ -771,7 +788,3 @@ class FlowNat(object):
             raise ValueError('plot must have an output_path set')
 
         return nat_flow1
-
-
-
-
