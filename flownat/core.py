@@ -10,6 +10,7 @@ from pdsql import mssql
 from gistools import rec, vector
 from allotools import AlloUsage
 from hydrolm import LM
+import pickle
 import os
 import yaml
 import pandas as pd
@@ -285,6 +286,7 @@ class FlowNat(object):
                 with lzma.open(os.path.join(datasets_path, param['input']['rec_catch_file'])) as r:
                     rec_catch = pickle.loads(r.read())
 
+            rec_rivers.rename(columns={'order': 'ORDER'}, inplace=True)
             setattr(self, 'rec_rivers', rec_rivers)
             setattr(self, 'rec_catch', rec_catch)
 

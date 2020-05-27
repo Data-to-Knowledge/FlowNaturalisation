@@ -24,7 +24,7 @@ input_sites3 = ['168833']
 
 
 def test_init_FlowNat():
-    f1 = FlowNat(from_date, to_date, input_sites=input_sites1)
+    f1 = FlowNat(from_date, to_date, input_sites=input_sites1, catch_del='rec')
 
     assert len(f1.summ) > 400
 
