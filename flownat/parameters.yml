@@ -4,16 +4,16 @@ input:
   ts_table: 'TSDataNumericDaily'
   ts_summ_table: 'TSDataNumericDailySumm'
   ts_dataset_table: vDatasetTypeNamesActive
-  sites_table: 'ExternalSite'      
+  sites_table: 'ExternalSite'
 
   permit_server: edwprod01
   permit_database: 'ConsentsReporting'
   crc_wap_table: 'reporting.CrcAlloSiteSumm'
   crc_status: ['Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Replaced', 'Terminated - Cancelled']
 
-  rec_rivers_sql: 'rec_rivers_gis'
-  rec_catch_sql: 'rec_catch_gis'
   catch_del_file: catchment_delineation_rec.pkl.xz
+  rec_rivers_file: mfe_rec_v2.4_rivers.gpd.pkl.xz
+  rec_catch_file: mfe_rec_v2.4_catchments.gpd.pkl.xz
   # allocation_blocks: ['A', 'AA', 'Adapt.Vol', 'T', 'Opihi-AA', 'Opihi-AN', 'In Waitaki', 'Opihi-BA']
 
 output:

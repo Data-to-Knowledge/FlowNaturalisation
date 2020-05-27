@@ -19,7 +19,7 @@ descrip = 'Tools to perform flow naturalisation in Caterbury'
 if os.environ.get('READTHEDOCS', False) == 'True':
     INSTALL_REQUIRES = []
 else:
-    INSTALL_REQUIRES = ['pdsql', 'gistools', 'ecandbparams', 'ecanallousagetools', 'hydrolm', 'pyyaml']
+    INSTALL_REQUIRES = ['pdsql', 'gistools', 'requests', 'ecanallousagetools', 'hydrolm', 'pyyaml']
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
