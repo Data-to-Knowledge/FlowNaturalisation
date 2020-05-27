@@ -10,7 +10,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 name = 'FlowNaturalisation'
 main_package = 'flownat'
 datasets = 'datasets'
-version = '0.1.4'
+version = '0.1.6'
 descrip = 'Tools to perform flow naturalisation in Caterbury'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
@@ -73,7 +73,7 @@ setup(
     #
     # This field corresponds to the "Description" metadata field:
     # https://packaging.python.org/specifications/core-metadata/#description-optional
-    long_description=long_description,  # Optional
+    #long_description=long_description,  # Optional
 
     # This should be a valid link to your project's main homepage.
     #

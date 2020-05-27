@@ -89,3 +89,27 @@ If usage data already existed, then the daily values are used, if not then the m
 Flow naturalisation calculation
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 Once the usage has been estimated for all upstream catchments and the flow record has also been estimated, then its a simple matter of adding the two daily time series together to get the final naturalised flow record estimate.
+
+Potential improvements
+----------------------
+
+Extend flow recorder data
+~~~~~~~~~~~~~~~~~~~~~~~~~
+At the moment, if the requested from and to dates extend beyond the record of a flow recorder site, then it uses that gaugings to create a new longer record. It would probably be better to extend the existing flow recorder record rather than using gaugings.
+
+This option is already possible in hydrolm (which is used in the package). It just needs to be integrated into this package.
+
+Finer resolution catchment delineation
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Currently, the catchment delineation uses the REC v2.4 and consequently it's resolution. If finer resolution delineation is required, then a different dataset is needed. At the same time, I don't want to increase the run time significantly higher than it already is.
+
+There are a couple options:
+
+We could pre-generate all catchments above all flow measurement sites. This would still require a rivers layer and associated DEM.
+This already used as a shortcut in the existing implementation, but it uses the REC. Combining the OSM waterways and the LINZ 8m DEM could do this.
+
+The other alternative if any arbitrary point along a river needs to be delineated on-the-fly would be to do something similar to the first option, but only create an OSM-like network that extends all the way up to all 2nd order streams. Using only the streams layer, all WAPs upstream can be selected based on a nearest neighbor query to the stream network rather than having catchments. The only downside of not using polygon catchments is that there is a possibility (though VERY slim) that WAPs might be in a different catchment even if a different river is technically closer. I do think in practice this won't be an issue if we use all 2nd order and higher streams.
+
+Transient abstractions
+~~~~~~~~~~~~~~~~~~~~~~~
+Currently abstractions regardless of the distance to the streams are instantaneous abstractions to the stream on that daily. This is of course not true. Lag times would need to be assigned based on the distance to the stream to be more appropriate.
