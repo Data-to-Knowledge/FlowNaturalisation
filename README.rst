@@ -18,7 +18,7 @@ The base class (FlowNat) initialises the tool with a from_date, to_date, min_gau
 
 Example scripts
 ---------------
-An example script can be found here: https://github.com/Data-to-Knowledge/FlowNaturalisation/blob/master/flownat/tests/utest_ash_2019-07-19.py
+An example script can be found here: https://github.com/Data-to-Knowledge/FlowNaturalisation/blob/master/flownat/tests/utest_ash_2019-07-19.py.
 The output_path will need to be modified for the specific user.
 
 Background and package dependencies
@@ -45,11 +45,11 @@ Requirements
 ~~~~~~~~~~~~~
 The requirements for the tool includes:
 
-- Use datasets available to ECan and maintained
-- Be consistent with existing ECan methods
-- Be relatively simple
-- Should work for the entire record of any recorder or gauging site in Canterbury with sufficient data
-- Be reproducible
+- Datasets available to ECan and maintained
+- Consistent with existing ECan methods
+- Relatively simple
+- Work for the entire record of any recorder or gauging site in Canterbury with sufficient data
+- Reproducible
 - Produce results quickly (a few minutes)
 
 Methods and assumptions
