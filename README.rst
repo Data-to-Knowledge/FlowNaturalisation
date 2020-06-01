@@ -16,6 +16,11 @@ Input parameters
 ----------------
 The base class (FlowNat) initialises the tool with a from_date, to_date, min_gaugings, input_sites, rec_data_code, and output_path. This sets up and prepares a lot of datasets for the successive modules. If all of those input parameters are defined at initialisation, then all of the successive modules/methods will not require any other input.
 
+Example scripts
+---------------
+An example script can be found here: https://github.com/Data-to-Knowledge/FlowNaturalisation/blob/master/flownat/tests/utest_ash_2019-07-19.py
+The output_path will need to be modified for the specific user.
+
 Background and package dependencies
 -----------------------------------
 The modules use several python packages for their procedures.
@@ -65,7 +70,7 @@ One of the input data required for the naturalisation is continuous flow records
 
 If the site has a recorder, then the tool simply pulls the data out from ECan’s systems and uses it directly as long as the flow record covers the requested date period for the naturalisation. If it doesn’t cover the requested period, then manual flows for that site is used.
 If manual flows for sites are used then a log-log regression to flow records with sufficient length and a maximum distance (default is 50 km) is used. The best correlation is selected based on the highest F value and a new continuous flow record is estimated from the correlation.
-All flows (and other time series data used in this naturalisation) are daily means.
+All flows (and other time series data used in this naturalisation) are daily means. Currently, the regressions use the full range of flows.
 
 Catchment delineation above the input sites
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -81,7 +86,8 @@ Querying and Estimating water usage when the usage doesn't exist
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 This is probably the most complicated module of the entire naturalisation process and this section will not go into exhaustive detail about it’s implementation. But generally, this involves querying the existing usage data associated with all WAPs/consents found in the prior module, then estimating the usage where it doesn’t exist.
 
-This module primarily uses the EcanAlloUsageTools python package for extracting water usage data from ECan’s databases.
+This module primarily uses the EcanAlloUsageTools python package for extracting water usage data from ECan’s databases. This tool pulls from a summary of the Accela data specifically for stream depleting consents that are considered "consumptive". Given the limitations of the data in the Accela database, any consents that have "temporary wavers" or have conditions that are shared between multiple consents (e.g. non-concurrence) are ignored (because the info is not available). The rates and volumes used are the overall consented rates and volumes for the consents and are split proportionally across their WAPs (if there are more than one WAP on a consent).
+
 First, all of the existing water usage data for the upstream WAPs are extracted. Given that the water usage data does not have much quality controls, three filters are used to ensure that the usage values are “realistic”. These are usage/allocation ratios at the daily, monthly, and yearly scales. The defaults are 2, 3, and 2 respectively. These were found to be generous enough to retain real-looking usage values and exclude erroneous ones. Though it is of course possible to have gotten false positives and negatives using these filters.
 Once the data has been filtered, abstraction/allocation ratios were calculated and lumped by month of the year, catchment, and use type. These ratios were then applied to the WAPs that did not have usage data to estimate the usage data by month. The results of the querying and estimating of the usage data is that all consented WAPs that are considered both stream depleting and consumptive have usage data.
 If usage data already existed, then the daily values are used, if not then the monthly estimates are resampled to daily using the pchip interpolation method in Python. This method is to make the result more smooth to be more natural looking.
@@ -92,6 +98,10 @@ Once the usage has been estimated for all upstream catchments and the flow recor
 
 Potential improvements
 ----------------------
+
+Regression options
+~~~~~~~~~~~~~~~~~~~
+Currently, the flow regressions use the entire flow record for the correlation to create a continuous flow record. This may be useful for some purposes, but other purposes (e.g. estimating low flow stats) using the entire record may not be appropriate. Additional options to constrain the flow range of the regression (e.g. 1.5 * median) could be useful.
 
 Extend flow recorder data
 ~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -113,3 +123,7 @@ The other alternative if any arbitrary point along a river needs to be delineate
 Transient abstractions
 ~~~~~~~~~~~~~~~~~~~~~~~
 Currently abstractions regardless of the distance to the streams are instantaneous abstractions to the stream on that daily. This is of course not true. Lag times would need to be assigned based on the distance to the stream to be more appropriate.
+
+Graphical user interface
+~~~~~~~~~~~~~~~~~~~~~~~~~
+A GUI on top of the tool would make using it easier for non-programmers.
