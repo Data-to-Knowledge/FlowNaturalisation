@@ -349,6 +349,7 @@ class FlowNat(object):
 
         ### Get crc data
         if waps_gdf.empty:
+            print('No WAPs were found in the polygon')
             allo_wap = pd.DataFrame()
         else:
             allo1 = AlloUsage(crc_filter={'ExtSiteID': waps_gdf.Wap.unique().tolist(), 'ConsentStatus': param['input']['crc_status']}, from_date=self.from_date, to_date=self.to_date)

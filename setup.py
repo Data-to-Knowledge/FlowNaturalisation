@@ -10,7 +10,7 @@ here = os.path.abspath(os.path.dirname(__file__))
 name = 'FlowNaturalisation'
 main_package = 'flownat'
 datasets = 'datasets'
-version = '0.1.7'
+version = '0.1.8'
 descrip = 'Tools to perform flow naturalisation in Caterbury'
 
 # The below code is for readthedocs. To have sphinx/readthedocs interact with
@@ -19,7 +19,7 @@ descrip = 'Tools to perform flow naturalisation in Caterbury'
 if os.environ.get('READTHEDOCS', False) == 'True':
     INSTALL_REQUIRES = []
 else:
-    INSTALL_REQUIRES = ['pdsql', 'gistools', 'requests', 'ecanallousagetools', 'hydrolm', 'pyyaml']
+    INSTALL_REQUIRES = ['pdsql', 'gistools', 'requests', 'ecanallousagetools', 'hydrolm', 'pyyaml', 'geopandas==0.7.0']
 
 # Get the long description from the README file
 with open(os.path.join(here, 'README.rst'), encoding='utf-8') as f:
