@@ -9,7 +9,7 @@ input:
   permit_server: edwprod01
   permit_database: 'ConsentsReporting'
   crc_wap_table: 'reporting.CrcAlloSiteSumm'
-  crc_status: ['Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Replaced', 'Terminated - Cancelled']
+  crc_status: ['Issued - Active', 'Terminated - Surrendered', 'Terminated - Expired', 'Terminated - Replaced', 'Terminated - Cancelled', 'Issued - s124 Continuance']
 
   catch_del_file: catchment_delineation_rec.pkl.xz
   rec_rivers_file: mfe_rec_v2.4_rivers.gpd.pkl.xz

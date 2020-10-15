@@ -1,6 +1,6 @@
 {% set name = "FlowNaturalisation" %}
-{% set version = "0.1.6" %}
-{% set sha256 = "ca840391a3b2e8595acf59d3e73aba60b5fb60b36a0fb8a3d08c170f8acc5d70" %}
+{% set version = "0.1.8" %}
+{% set sha256 = "21709f2956cb84f868140f7ebd812399b0f30d81889950a03d48457306359077" %}
 
 # sha256 is the prefered checksum -- you can get it for a file with:
 #  `openssl sha256 <file name>`.
@@ -42,6 +42,7 @@ requirements:
     - requests
     - ecanallousagetools
     - hydrolm
+    - geopandas=0.7.0
 
 test:
   imports:
