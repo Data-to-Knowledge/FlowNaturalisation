@@ -535,7 +535,7 @@ class FlowNat(object):
 
             usage2 = usage1.loc[usage1.SwRestrAllo > 0, ['SwRestrAllo', 'SwUsage']].reset_index().copy()
 
-            usage2.replace({'WaterUse': {'industrial': 'other', 'municipal': 'other'}}, inplace=True)
+            usage2.replace({'WaterUse': {'industry': 'other'}}, inplace=True)
 
             usage2[['SwRestrAlloYr', 'SwUsageYr']] = usage2.groupby(['Wap', 'WaterUse', pd.Grouper(key='Date', freq='A-JUN')]).transform('sum')
 
